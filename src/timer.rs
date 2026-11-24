@@ -102,6 +102,7 @@ impl Timer {
     }
 
     pub fn pause(&mut self, now: Instant) {
+        self.update(now);
         if self.state == TimerState::Running {
             self.remaining = self
                 .deadline
@@ -213,6 +214,19 @@ mod tests {
         assert_eq!(timer.phase(), Phase::ShortBreak);
         assert_eq!(timer.remaining(), Duration::from_secs(5 * 60));
         assert_eq!(timer.state(), TimerState::Running);
+    }
+
+    #[test]
+    fn pausing_at_the_deadline_completes_the_work_session() {
+        let start = Instant::now();
+        let mut timer = Timer::new();
+
+        timer.start(start);
+        timer.pause(start + Duration::from_secs(25 * 60));
+
+        assert_eq!(timer.state(), TimerState::Complete);
+        assert_eq!(timer.next_phase(), Some(Phase::ShortBreak));
+        assert_eq!(timer.completed_work_sessions(), 1);
     }
 
     #[test]
