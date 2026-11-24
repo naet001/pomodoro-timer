@@ -4,8 +4,7 @@ A small desktop Pomodoro timer built with Rust and [egui](https://github.com/emi
 
 ## Features
 
-- 25-minute work sessions
-- 5-minute short breaks and a 15-minute long break after four completed work sessions
+- Work and break sessions
 - Start, pause, reset, and skip controls
 - Manual phase changes: each phase waits for you to start it
 - Accurate countdown based on a monotonic clock
