@@ -43,25 +43,20 @@ impl eframe::App for PomodoroApp {
                     TimerState::Ready => {
                         ui.label("Ready");
                     }
-                    TimerState::Running => {
+                    TimerState::Running { .. } => {
                         ui.label("In progress");
                     }
                     TimerState::Paused => {
                         ui.label("Paused");
                     }
-                    TimerState::Complete => {
-                        let next_phase = self
-                            .timer
-                            .next_phase()
-                            .map(|phase| phase.label())
-                            .unwrap_or("next phase");
-                        ui.label(format!("Phase complete. Next: {next_phase}"));
+                    TimerState::Complete { next_phase } => {
+                        ui.label(format!("Phase complete. Next: {}", next_phase.label()));
                     }
                 }
 
                 ui.add_space(24.0);
                 ui.horizontal(|ui| {
-                    if self.timer.state() == TimerState::Running {
+                    if matches!(self.timer.state(), TimerState::Running { .. }) {
                         if ui.button("Pause").clicked() {
                             self.timer.pause(Instant::now());
                         }
@@ -85,7 +80,7 @@ impl eframe::App for PomodoroApp {
             });
         });
 
-        if self.timer.state() == TimerState::Running {
+        if matches!(self.timer.state(), TimerState::Running { .. }) {
             context.request_repaint_after(std::time::Duration::from_millis(200));
         }
     }

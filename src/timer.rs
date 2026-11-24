@@ -32,17 +32,15 @@ impl Phase {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TimerState {
     Ready,
-    Running,
+    Running { deadline: Instant },
     Paused,
-    Complete,
+    Complete { next_phase: Phase },
 }
 
 pub struct Timer {
     phase: Phase,
     state: TimerState,
     remaining: Duration,
-    deadline: Option<Instant>,
-    next_phase: Option<Phase>,
     completed_work_sessions: u32,
 }
 
@@ -58,8 +56,6 @@ impl Timer {
             phase: Phase::Work,
             state: TimerState::Ready,
             remaining: WORK_DURATION,
-            deadline: None,
-            next_phase: None,
             completed_work_sessions: 0,
         }
     }
@@ -76,39 +72,30 @@ impl Timer {
         self.remaining
     }
 
-    pub fn next_phase(&self) -> Option<Phase> {
-        self.next_phase
-    }
-
     pub fn completed_work_sessions(&self) -> u32 {
         self.completed_work_sessions
     }
 
     pub fn start(&mut self, now: Instant) {
-        if self.state == TimerState::Complete {
-            if let Some(phase) = self.next_phase.take() {
-                self.phase = phase;
-                self.remaining = phase.duration();
-            }
+        if let TimerState::Complete { next_phase } = self.state {
+            self.phase = next_phase;
+            self.remaining = next_phase.duration();
         }
 
         if matches!(
             self.state,
-            TimerState::Ready | TimerState::Paused | TimerState::Complete
+            TimerState::Ready | TimerState::Paused | TimerState::Complete { .. }
         ) {
-            self.deadline = Some(now + self.remaining);
-            self.state = TimerState::Running;
+            self.state = TimerState::Running {
+                deadline: now + self.remaining,
+            };
         }
     }
 
     pub fn pause(&mut self, now: Instant) {
         self.update(now);
-        if self.state == TimerState::Running {
-            self.remaining = self
-                .deadline
-                .take()
-                .unwrap_or(now)
-                .saturating_duration_since(now);
+        if let TimerState::Running { deadline } = self.state {
+            self.remaining = deadline.saturating_duration_since(now);
             self.state = TimerState::Paused;
         }
     }
@@ -116,37 +103,30 @@ impl Timer {
     pub fn reset(&mut self) {
         self.state = TimerState::Ready;
         self.remaining = self.phase.duration();
-        self.deadline = None;
-        self.next_phase = None;
     }
 
     pub fn skip(&mut self) {
-        self.phase = self
-            .next_phase
-            .unwrap_or_else(|| self.select_next_phase(false));
+        self.phase = match self.state {
+            TimerState::Complete { next_phase } => next_phase,
+            _ => self.select_next_phase(false),
+        };
         self.state = TimerState::Ready;
         self.remaining = self.phase.duration();
-        self.deadline = None;
-        self.next_phase = None;
     }
 
     pub fn update(&mut self, now: Instant) {
-        if self.state != TimerState::Running {
-            return;
-        }
-
-        let Some(deadline) = self.deadline else {
+        let TimerState::Running { deadline } = self.state else {
             return;
         };
 
         self.remaining = deadline.saturating_duration_since(now);
         if self.remaining.is_zero() {
-            self.deadline = None;
             if self.phase == Phase::Work {
                 self.completed_work_sessions += 1;
             }
-            self.next_phase = Some(self.select_next_phase(true));
-            self.state = TimerState::Complete;
+            self.state = TimerState::Complete {
+                next_phase: self.select_next_phase(true),
+            };
         }
     }
 
@@ -182,7 +162,7 @@ mod tests {
         timer.update(start + Duration::from_secs(5 * 60 + 30));
 
         assert_eq!(timer.remaining(), Duration::from_secs(23 * 60 + 30));
-        assert_eq!(timer.state(), TimerState::Running);
+        assert!(matches!(timer.state(), TimerState::Running { .. }));
     }
 
     #[test]
@@ -207,13 +187,17 @@ mod tests {
         timer.update(start + Duration::from_secs(25 * 60));
 
         assert_eq!(timer.phase(), Phase::Work);
-        assert_eq!(timer.next_phase(), Some(Phase::ShortBreak));
-        assert_eq!(timer.state(), TimerState::Complete);
+        assert_eq!(
+            timer.state(),
+            TimerState::Complete {
+                next_phase: Phase::ShortBreak
+            }
+        );
 
         timer.start(start + Duration::from_secs(25 * 60));
         assert_eq!(timer.phase(), Phase::ShortBreak);
         assert_eq!(timer.remaining(), Duration::from_secs(5 * 60));
-        assert_eq!(timer.state(), TimerState::Running);
+        assert!(matches!(timer.state(), TimerState::Running { .. }));
     }
 
     #[test]
@@ -224,8 +208,12 @@ mod tests {
         timer.start(start);
         timer.pause(start + Duration::from_secs(25 * 60));
 
-        assert_eq!(timer.state(), TimerState::Complete);
-        assert_eq!(timer.next_phase(), Some(Phase::ShortBreak));
+        assert_eq!(
+            timer.state(),
+            TimerState::Complete {
+                next_phase: Phase::ShortBreak
+            }
+        );
         assert_eq!(timer.completed_work_sessions(), 1);
     }
 
@@ -246,7 +234,12 @@ mod tests {
             }
         }
 
-        assert_eq!(timer.next_phase(), Some(Phase::LongBreak));
+        assert_eq!(
+            timer.state(),
+            TimerState::Complete {
+                next_phase: Phase::LongBreak
+            }
+        );
     }
 
     #[test]
