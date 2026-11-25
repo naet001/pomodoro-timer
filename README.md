@@ -2,8 +2,6 @@
 
 A small desktop Pomodoro timer built with Rust and [egui](https://github.com/emilk/egui). It offers focused work and break sessions with simple controls and no setup beyond Rust.
 
-## Preview
-
 ![Pomodoro Timer](icon.png)
 
 ## Features
