@@ -34,9 +34,9 @@ jobs:
       - name: Install cargo-bundle
         run: cargo install cargo-bundle --locked
       - name: Build AppImage
-        run: cargo bundle --format appimage --release --locked
+        run: cargo bundle --format appimage --release
       - name: Build deb
-        run: cargo bundle --format deb --release --locked
+        run: cargo bundle --format deb --release
       - uses: actions/upload-artifact@v4
         with:
           name: linux-installers
@@ -47,14 +47,14 @@ jobs:
   bundle-macos:
     name: macOS DMG
     needs: test
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Install cargo-bundle
         run: cargo install cargo-bundle --locked
       - name: Build DMG
-        run: cargo bundle --format dmg --release --locked
+        run: cargo bundle --format dmg --release
       - uses: actions/upload-artifact@v4
         with:
           name: macos-installer
@@ -70,9 +70,9 @@ jobs:
       - name: Install cargo-bundle
         run: cargo install cargo-bundle --locked
       - name: Build EXE installer
-        run: cargo bundle --format exe --release --locked
+        run: cargo bundle --format exe --release
       - name: Build MSI
-        run: cargo bundle --format msi --release --locked
+        run: cargo bundle --format msi --release
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installers
