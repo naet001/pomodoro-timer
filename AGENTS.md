@@ -64,3 +64,15 @@ produces cross-platform installers via `cargo-bundle`.
 3. Update `Cargo.toml`'s `[package.metadata.bundle.icon]` if the icon set
    changes (currently `["icon.png"]`).
 4. Test locally with `cargo bundle --format <format> --release --locked`.
+
+## Releases and tagging
+
+- Releases are triggered by Git tags matching `v*`, e.g. `v0.1.0`.
+- To create a release: `git tag v0.1.0 && git push origin v0.1.0`.
+  This triggers the GitHub Actions "Release" workflow.
+- The workflow matrix builds all platform installers (Linux AppImage+deb,
+  macOS DMG, Windows exe+msi) via `cargo-bundle`.
+- The `publish` job downloads the artifacts, generates SHA256SUMS, and creates
+  a GitHub Release with all installers attached and release notes from the tag.
+- After a release is published, increment the version in `Cargo.toml` for the
+  next release cycle (follow SemVer: MAJOR.MINOR.PATCH).
