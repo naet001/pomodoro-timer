@@ -2,6 +2,28 @@
 name = "pomodoro-timer"
 version = "0.1.0"
 edition = "2024"
+description = "A small desktop Pomodoro timer"
+homepage = "https://github.com/naet001/pomodoro-timer"
+repository = "https://github.com/naet001/pomodoro-timer"
+
+[package.metadata.bundle]
+name = "Pomodoro Timer"
+identifier = "com.naet001.pomodoro-timer"
+icon = ["icon.png"]
+category = "Productivity"
+short_description = "A simple desktop Pomodoro timer"
+long_description = "A desktop Pomodoro timer for focused work and breaks."
+
+[package.metadata.bundle.linux]
+deb_depends = [
+    "libc6",
+    "libgcc-s1",
+    "libx11-6",
+    "libwayland-client0",
+    "libwayland-cursor0",
+    "libwayland-egl1",
+    "libxkbcommon0",
+]
 
 [dependencies]
 eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }
